@@ -73,12 +73,15 @@ else {
 }
 
 if (-not $existingRepo) {
-    $visibilityArgs = switch ($Visibility) {
-        'private' { @('--private') }
-        'public' { @('--public') }
-        'internal' { @('--internal') }
-    }
-    & $GhPath repo create $fullName @visibilityArgs --description $Description --source $RepoRoot --remote origin --push
+    $createArgs = @(
+        $fullName,
+        "--$Visibility",
+        "--description=$Description",
+        "--source=$RepoRoot",
+        "--remote=origin",
+        '--push'
+    )
+    & $GhPath repo create @createArgs
     if ($LASTEXITCODE -ne 0) { throw 'GitHub repository creation or initial push failed.' }
 }
 else {
