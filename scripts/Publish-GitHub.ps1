@@ -29,8 +29,9 @@ if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($login)) {
 $fullName = "$login/$RepositoryName"
 
 $existingRepo = $false
-& $GhPath repo view $fullName --json url --jq .url 2>$null
-if ($LASTEXITCODE -eq 0) { $existingRepo = $true }
+$repoNames = @(& $GhPath repo list $login --limit 1000 --json name --jq '.[].name')
+if ($LASTEXITCODE -ne 0) { throw 'Could not list repositories for the authenticated GitHub account.' }
+$existingRepo = $repoNames -contains $RepositoryName
 
 if (-not (Test-Path -LiteralPath (Join-Path $RepoRoot '.git'))) {
     git -C $RepoRoot init --initial-branch=main
