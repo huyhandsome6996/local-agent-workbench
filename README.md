@@ -1,68 +1,99 @@
 # Windows Agent Workstation Playbook
 
-Reusable Windows workstation setup and agent instructions for local development. Desktop Commander operates PowerShell/CMD, files and processes; Chrome DevTools MCP handles browser DOM inspection and automation.
+One paired Windows PC, reusable by ChatGPT Web, Claude Web and MCP-capable local coding agents.
 
-## Capabilities
+The design solves two separate problems:
 
-- Local PowerShell/CMD, filesystem and process work through Desktop Commander MCP.
-- Browser inspection and automation through Chrome DevTools MCP.
-- Reusable skills for workstation operation, Chrome debugging, troubleshooting and intake of unfamiliar GitHub repositories.
-- Safe defaults: inspect first, back up before edits, use a dedicated workspace, preserve existing Git changes, verify results and report blockers honestly.
+- **Remote Desktop Commander Remote** gives a web-based AI agent a secure terminal/files/process bridge to the paired Windows PC.
+- **Chrome DevTools MCP** is installed on that PC. The agent runs its CLI through Remote Desktop Commander to inspect browser DOM/accessibility snapshots, interact with real element UIDs, capture screenshots and inspect Console/Network.
 
-## Quick start for an agent
+## Start here
 
-1. Read AGENTS.md.
-2. Read skills/windows-workstation/SKILL.md and skills/repository-intake/SKILL.md.
-3. For browser tasks, read skills/chrome-devtools/SKILL.md and skills/chrome-devtools-cli/SKILL.md.
-4. Confirm Desktop Commander is online and Chrome DevTools MCP is connected before using either.
-5. For a new project, use prompts/REPO-HANDOFF.md and replace its two placeholders.
-6. Work in the user's AgentWorkstation/workspace folder; reuse existing clones.
+1. Read `AGENTS.md`.
+2. Read `docs/WEB-AGENT-COMPATIBILITY.md`.
+3. Read `skills/windows-workstation/SKILL.md` and `skills/repository-intake/SKILL.md`.
+4. Confirm Remote Desktop Commander is available and the paired PC is Online.
+5. When the task involves a website, use Chrome DevTools CLI through the paired PC's terminal. Do not rely on CMD alone.
+6. For a new GitHub project, use `prompts/REPO-HANDOFF.md`.
 
-## Windows installation
+## Architecture
 
-Open normal PowerShell (not Administrator) in the repository root:
+```text
+ChatGPT Web / Claude Web / another remote-MCP host
+                 |
+                 v
+https://mcp.desktopcommander.app/mcp
+                 |
+                 v
+Remote Desktop Commander agent running on Windows
+                 |
+                 +--> PowerShell / CMD / files / Git
+                 |
+                 +--> chrome-devtools CLI
+                          |
+                          v
+                 Chrome DevTools MCP
+                          |
+                          v
+                   Chrome browser DOM,
+                 accessibility tree, screenshots,
+                   Console and Network
+```
 
-    .\scripts\Install-AgentWorkstation.ps1
-    .\scripts\Test-Workstation.ps1
+## Important: connector access is a one-time host setup
 
-The installer backs up existing Codex and Antigravity MCP configuration files before merging missing server entries. It installs five skills to the global skill directories and skips identical files. It does not change Windows PATH, Registry, services, firewall or Chrome's debugging consent.
+A repository cannot grant an AI host permission to control the computer. The host must support remote MCP and the Remote Desktop Commander connector must be connected to the same account that owns the paired device.
 
-## Agent clients
+- **ChatGPT Web:** Remote Desktop Commander is already installed in the account used for this workstation. Keep it connected and available in the conversation.
+- **Claude Web:** add a custom connector once in Customize → Connectors → Add → Custom → Web using `https://mcp.desktopcommander.app/mcp`; authorize the same Remote Desktop Commander account.
+- **Other web agents:** connect the remote MCP endpoint if the host supports Streamable HTTP/OAuth.
+- **Codex/Antigravity/Claude Desktop/Claude Code:** use the supplied MCP examples or the one-time local configuration.
 
-Antigravity:
-- Global MCP config: %USERPROFILE%\.gemini\config\mcp_config.json
-- Global skills: %USERPROFILE%\.gemini\config\skills\
+If the host cannot load remote MCP and has no authorized computer-use tool, it cannot reach the PC. The agent must say so instead of pretending.
 
-Codex:
-- MCP config: %USERPROFILE%\.codex\config.toml
-- Global skills: %USERPROFILE%\.agents\skills\
+## Windows device
 
-Restart/reload the corresponding client MCP servers after configuration changes.
+The PC was paired by running:
 
-## Browser access model
+```powershell
+npx @wonderwhy-er/desktop-commander@latest remote
+```
 
-The Chrome DevTools MCP configuration uses Chrome's autoConnect flow. Chrome remote debugging must already be enabled by the user, and the user must approve Chrome's own permission prompt. The agent must never automate these consent controls. Chrome access exposes the connected profile's pages and data; only touch the tab/page required by the task.
+Keep that terminal window running. Closing it disconnects the PC from Remote Desktop Commander.
 
-## GitHub repository intake
+## Browser controls
 
-When a user supplies a repository URL, read AGENTS.md and skills/repository-intake/SKILL.md first. Inspect repo instructions, architecture, dependencies, tests, CI, branch and worktree before changes. Default to the current branch. Do not create branches, commit, push, merge or deploy unless explicitly requested.
+Chrome DevTools MCP `1.14.0` is installed globally. Run on the paired PC through Remote Desktop Commander's terminal:
 
-Reusable prompt: prompts/REPO-HANDOFF.md.
+```powershell
+$cli = Join-Path $env:APPDATA 'npm\chrome-devtools.cmd'
+& $cli status
+& $cli list_pages --output-format=json
+& $cli take_snapshot <pageId>
+& $cli take_screenshot <pageId> --filePath "$env:USERPROFILE\AgentWorkstation\workspace\page.png"
+```
 
-## Publish this playbook
+Use fresh accessibility/DOM snapshots and UIDs before clicking/filling. Refresh snapshots after navigation or state changes. Use screenshots, Console, Network and CSS inspection to verify. Chrome remote debugging must be enabled and its permission prompt manually approved by the user; the agent must not automate consent.
 
-A portable, checksum-verified GitHub CLI can live at %USERPROFILE%\AgentWorkstation\tools\gh\gh.exe. After the account holder authenticates with the GitHub CLI web/device flow, run:
+## Local installation and tests
 
-    .\scripts\Publish-GitHub.ps1
+Normal, non-Administrator PowerShell from this repository root:
 
-The script creates a private repository by default, checks staged paths for likely secret files, pushes main and verifies the repository URL. It will not force-push or replace an unrelated origin.
+```powershell
+.\scripts\Install-AgentWorkstation.ps1
+.\scripts\Test-Workstation.ps1
+```
 
-## Upstream project
+Skills are installed globally for Codex and Antigravity. MCP configuration is merged with backups; unrelated servers are preserved. Restart/reload each client after configuration changes.
 
-Chrome DevTools MCP: https://github.com/ChromeDevTools/chrome-devtools-mcp
+## Repository workflow
 
-This workstation currently uses chrome-devtools-mcp 1.14.0. Review the upstream changelog and refresh the included upstream skills whenever changing the package version. See THIRD_PARTY_NOTICES.md and LICENSE-CHROME-DEVTOOLS-MCP.txt.
+When a user supplies a GitHub URL, the agent must read the instructions, inspect the architecture, dependency manifests, CI, tests and Git state before editing. Reuse clones in `%USERPROFILE%\AgentWorkstation\workspace`. Default to the existing branch. Do not create branches, commits, pushes, PRs, merges or deployments unless the user requests them.
 
-## Secrets and private data
+## GitHub publication
 
-Never commit tokens, passwords, cookies, browser profiles, private configuration, workspace files, screenshots of private pages or logs containing sensitive material. Use a connected GitHub integration or an OS-managed GitHub CLI authentication flow. Never paste PATs into prompts, commands or repository files.
+GitHub CLI is stored portably under `%USERPROFILE%\AgentWorkstation\tools\gh\gh.exe`. Authenticate using the interactive browser/device login flow, then run `scripts/Publish-GitHub.ps1`. The repository is private by default; the script checks staged file paths, avoids likely secrets, and verifies the pushed remote.
+
+## Security
+
+Never commit PATs, passwords, cookies, browser profiles, local configs, screenshots of private pages or logs containing sensitive material. Chrome DevTools can see content in the connected profile; access only the exact pages authorized by the user. See `docs/SECURITY.md` and `docs/WEB-AGENT-COMPATIBILITY.md`.

@@ -1,51 +1,69 @@
 ---
 name: windows-workstation
-description: Use for safe multi-step Windows workstation tasks through Desktop Commander, PowerShell/CMD, local files, processes, Git repositories and installed tools.
+description: Use for safe multi-step Windows workstation tasks through Remote Desktop Commander or local Desktop Commander, PowerShell/CMD, Chrome DevTools MCP CLI, local files, processes and Git repositories.
 ---
 
 # Windows Workstation Skill
 
-## Tool selection
+## Select the correct bridge
 
-- Use Desktop Commander for local Windows commands, file operations, directory inspection, process inspection and multi-step scripts.
-- Use Chrome DevTools MCP for browser automation and DOM inspection.
-- Use GitHub integration for GitHub content/repositories where available; do not use a PAT pasted in chat.
-- Keep local work in `%USERPROFILE%\AgentWorkstation\workspace`.
+- For ChatGPT Web, Claude Web and other hosted chat agents, use the **Remote Desktop Commander Remote** connector. Its endpoint is `https://mcp.desktopcommander.app/mcp`.
+- The Windows device is paired by `npx @wonderwhy-er/desktop-commander@latest remote`. That terminal must stay open.
+- For a local coding agent on the same machine, Desktop Commander local stdio is also valid.
+- Never assume the connector is available just because this repository is present. Call a tool and verify the exact paired device is Online.
 
 ## Preflight
 
-1. Confirm the exact device is Online.
-2. Check the target path exists and inspect its contents.
-3. Inspect running processes before starting/stopping services.
-4. Check versions with `node --version`, `npm --version`, `git --version` or the tool relevant to the task.
-5. Read project instructions and package scripts.
-6. For Git repos run `git status --short --branch` before editing.
+1. Confirm the paired device and its Online status.
+2. Run harmless terminal checks for `$env:COMPUTERNAME`, `$env:USERPROFILE`, `node --version` and `git --version`.
+3. For browser tasks, run `& "$env:APPDATA\npm\chrome-devtools.cmd" status` and `list_pages --output-format=json`.
+4. Confirm the intended browser tab exists. If Chrome remote-debugging consent is missing, ask the user to enable/approve it manually.
+5. Inspect project paths and Git state before changing files.
+
+## Browser control through Chrome DevTools MCP
+
+Chrome DevTools MCP is installed on the paired Windows PC. Web-based agents call its CLI through Remote Desktop Commander's terminal. Use the CLI path:
+
+`$cli = Join-Path $env:APPDATA 'npm\chrome-devtools.cmd'`
+
+Typical workflow:
+
+1. `& $cli list_pages --output-format=json`
+2. `& $cli take_snapshot <pageId>`
+3. Find the exact element UID from the snapshot.
+4. `click`, `fill`, `press_key` or `type_text` using the UID.
+5. Take a fresh snapshot after navigation/state changes.
+6. For visual verification: `& $cli take_screenshot <pageId> --filePath "$env:USERPROFILE\AgentWorkstation\workspace\after.png"`; read the saved image through Desktop Commander if needed.
+7. Use `list_console_messages`, `list_network_requests`, `get_network_request` and `get_css_styles` for debugging.
+
+Use DOM/accessibility UIDs as the default. Do not rely on terminal text alone when a browser screenshot or DOM snapshot can establish the result.
+
+## Browser safety
+
+- Chrome remote debugging requires a user-controlled setting and a manually approved Chrome permission dialog. Never bypass or automate consent.
+- Only access the specific page/tab the user asked about. Do not inspect unrelated ChatGPT/Claude conversations, private messages, cookies, storage or credentials.
+- Do not send messages, submit forms, publish or delete without explicit user instruction.
+- Do not expose a DevTools debugging port publicly.
 
 ## PowerShell best practices
 
 - Use `$ErrorActionPreference = 'Stop'` for scripts that should fail fast.
-- Use literal absolute paths and quote them.
-- Avoid wildcard deletion and recursive deletes unless explicitly required.
-- Make timestamped backups before replacing existing files.
-- Use temporary files then atomic move for important config updates.
-- Preserve unrelated JSON keys and formatting where practical.
+- Use explicit absolute paths and quote them.
+- Back up existing files before replacement; use temporary files and atomic moves for important config updates.
+- Preserve unrelated JSON/TOML keys.
 - Never run as Administrator by default.
-- Never modify Windows security settings, services, registry or firewall without specific user authorization.
+- Never modify Registry, services, firewall or Windows security settings without explicit authorization.
+- Avoid wildcard deletion and recursive deletes unless explicitly requested.
 
 ## Multi-task workflow
 
-1. Break the task into independent workstreams.
-2. Run independent read-only inspection in parallel.
-3. Do not edit the same file concurrently.
-4. Keep operations that depend on previous outputs sequential.
-5. Record PIDs for long-running tasks and poll their output instead of launching duplicate commands.
-6. Stop only the process/session created for this task, not unrelated processes.
-7. Verify each output file, process state or Git diff before reporting completion.
-
-## Browser workflow
-
-Follow `../chrome-devtools-cli/SKILL.md` and `../chrome-devtools/SKILL.md`. Browser IDs are ephemeral; re-list pages and re-snapshot after navigation or state changes.
+1. Break complex tasks into independent workstreams.
+2. Run independent read-only checks in parallel.
+3. Do not write the same file concurrently.
+4. Record PIDs for long-running processes and poll their output.
+5. Stop only processes/sessions created for this task.
+6. Verify files, processes, Git diff and browser state before reporting.
 
 ## Safe completion
 
-Summarize the exact changes, commands, checks and open blockers. Distinguish success from partial completion. Never claim a command achieved the desired result without an independent verification.
+Report exact changes, commands and checks. Distinguish verified, partially verified and unverified items. Never claim an action succeeded if it was not observed.

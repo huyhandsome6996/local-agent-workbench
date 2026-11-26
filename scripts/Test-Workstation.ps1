@@ -35,13 +35,13 @@ if (-not (Test-Path $agyConfig)) { throw "Antigravity MCP config missing: $agyCo
 $agy = Get-Content -Raw -LiteralPath $agyConfig | ConvertFrom-Json
 $agyNames = @($agy.mcpServers.PSObject.Properties.Name)
 $agyNames
-foreach ($name in @('desktop-commander', 'chrome-devtools')) {
+foreach ($name in @('desktop-commander', 'remote-desktop-commander', 'chrome-devtools')) {
     if ($name -notin $agyNames) { throw "Antigravity MCP server missing: $name" }
 }
 
 Write-Host '--- Codex MCP TOML ---'
 if (-not (Test-Path $codexConfig)) { throw "Codex config missing: $codexConfig" }
-python -c "import os,tomllib; p=os.path.expanduser('~/.codex/config.toml'); d=tomllib.load(open(p,'rb')); names=d.get('mcp_servers',{}).keys(); required={'desktop-commander','chrome-devtools'}; missing=required-set(names); print('Codex servers: '+', '.join(names)); raise SystemExit(bool(missing))"
+python -c "import os,tomllib; p=os.path.expanduser('~/.codex/config.toml'); d=tomllib.load(open(p,'rb')); names=d.get('mcp_servers',{}).keys(); required={'desktop-commander','remote-desktop-commander','chrome-devtools'}; missing=required-set(names); print('Codex servers: '+', '.join(names)); raise SystemExit(bool(missing))"
 if ($LASTEXITCODE -ne 0) { throw 'Codex MCP config is missing a required server or has invalid TOML.' }
 
 Write-Host '--- Global skills ---'

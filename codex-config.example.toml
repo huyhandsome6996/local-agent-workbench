@@ -1,12 +1,9 @@
-# Reference only. Prefer the included installer so paths are resolved for the current Windows user.
+# Remote paired Windows computer — OAuth is handled by Codex.
+[mcp_servers.remote-desktop-commander]
+url = "https://mcp.desktopcommander.app/mcp"
 
-[mcp_servers.desktop-commander]
-command = "cmd"
-args = ["/c", "npx", "-y", "@wonderwhy-er/desktop-commander@latest"]
-startup_timeout_ms = 30000
-
+# Local Chrome DevTools MCP CLI/server for a browser running on this computer.
+# Keep paths relative to your own Windows npm global prefix.
 [mcp_servers.chrome-devtools]
-command = "C:\\Program Files\\nodejs\\node.exe"
+command = "node"
 args = ["<USER_NPM_GLOBAL_ROOT>\\node_modules\\chrome-devtools-mcp\\out\\Default\\gen\\src\\bin\\chrome-devtools-mcp.js", "--autoConnect", "--usageStatistics=false", "--performanceCrux=false", "--redactNetworkHeaders=true", "--fileNavigations=false", "--backgroundNewPages=true", "--filesystemRoot=<USERPROFILE>\\AgentWorkstation\\workspace"]
-env = { CHROME_DEVTOOLS_MCP_NO_USAGE_STATISTICS = "1", CHROME_DEVTOOLS_MCP_NO_UPDATE_CHECKS = "1" }
-startup_timeout_ms = 20000

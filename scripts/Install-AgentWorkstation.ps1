@@ -131,6 +131,12 @@ if (-not $SkipMcp) {
         args = @('/d', '/s', '/c', 'npx -y @wonderwhy-er/desktop-commander@latest')
     })) -or $AntigravityChanged
 
+    # Remote paired device bridge for web-based agents and remote MCP clients.
+    $AntigravityChanged = (Add-McpEntry -Config $AntigravityConfig -Name 'remote-desktop-commander' -Entry ([pscustomobject]@{
+        serverUrl = 'https://mcp.desktopcommander.app/mcp'
+        timeoutSeconds = 300
+    })) -or $AntigravityChanged
+
     $ChromeArgs = @(
         $ChromeServer,
         '--autoConnect',
@@ -186,6 +192,14 @@ command = $cmdToml
 args = ["/d", "/s", "/c", "npx -y @wonderwhy-er/desktop-commander@latest"]
 startup_timeout_ms = 30000
 "@
+    }
+
+    if ($CodexToml -notmatch '(?m)^\[mcp_servers\.remote-desktop-commander\]') {
+        $CodexAdditions += @'
+[mcp_servers.remote-desktop-commander]
+url = "https://mcp.desktopcommander.app/mcp"
+startup_timeout_ms = 30000
+'@
     }
 
     if ($CodexToml -notmatch '(?m)^\[mcp_servers\.chrome-devtools\]') {

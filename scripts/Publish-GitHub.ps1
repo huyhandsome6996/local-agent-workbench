@@ -50,18 +50,25 @@ if ($LASTEXITCODE -ne 0) { throw 'git add failed.' }
 git -C $RepoRoot status --short
 git -C $RepoRoot diff --cached --check
 if ($LASTEXITCODE -ne 0) { throw 'Staged diff check failed.' }
-$staged = git -C $RepoRoot diff --cached --name-only
-if (-not $staged) { throw 'No files are staged; refusing to create an empty repository.' }
-$sensitive = $staged | Where-Object { $_ -match '(^|/)(\.env|\.env\.|secrets?\.|credentials?\.)|\.pem$|\.key$|\.pfx$|\.p12$|\.log$|\.har$|\.heapsnapshot$' }
-if ($sensitive) {
-    throw "Potentially sensitive file staged: $($sensitive -join ', '). Review before publishing."
+$staged = @(git -C $RepoRoot diff --cached --name-only)
+if ($staged.Count -gt 0) {
+    $sensitive = $staged | Where-Object { $_ -match '(^|/)(\.env|\.env\.|secrets?\.|credentials?\.)|\.pem$|\.key$|\.pfx$|\.p12$|\.log$|\.har$|\.heapsnapshot$' }
+    if ($sensitive) {
+        throw "Potentially sensitive file staged: $($sensitive -join ', '). Review before publishing."
+    }
+    git -C $RepoRoot diff --cached --stat
+    $hasCommit = git -C $RepoRoot rev-parse --verify HEAD 2>$null
+    if ($LASTEXITCODE -eq 0) {
+        git -C $RepoRoot commit -m 'Update Windows agent workstation playbook'
+    }
+    else {
+        git -C $RepoRoot commit -m 'Initial Windows agent workstation playbook'
+    }
+    if ($LASTEXITCODE -ne 0) { throw 'Git commit failed.' }
 }
-git -C $RepoRoot diff --cached --stat
-
-$commit = git -C $RepoRoot log -1 --format=%H 2>$null
-if ($LASTEXITCODE -ne 0) {
-    git -C $RepoRoot commit -m 'Initial Windows agent workstation playbook'
-    if ($LASTEXITCODE -ne 0) { throw 'Initial commit failed.' }
+else {
+    $hasCommit = git -C $RepoRoot rev-parse --verify HEAD 2>$null
+    if ($LASTEXITCODE -ne 0) { throw 'No staged files or existing commit; refusing to publish an empty repository.' }
 }
 
 if (-not $existingRepo) {
